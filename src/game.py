@@ -1,10 +1,25 @@
-from typing import Tuple
 import math
 import random
 from computer.brain import generate_code
 
 
 class Game:
+
+    class Logger:
+        OUTPUT_SPACE = 50
+        WIDTH = 50
+
+        def __init__(self, game):
+            self.game = game
+
+        def log_table(self, guess: str, match: int):
+
+            print(f"{self.game.get_current_player():{Game.Logger.OUTPUT_SPACE}s} {guess: {Game.Logger.OUTPUT_SPACE}s} {match}")
+
+        def log_victory(self):
+            print("*" * Game.Logger.WIDTH)
+            print(f"* {'CONGRATULATIONS: ' + self.game.get_current_player():^{Game.Logger.WIDTH - 4}} *")
+            print("*" * Game.Logger.WIDTH)
 
     def __init__(self, code_length: int=4):
 
@@ -64,57 +79,34 @@ class Game:
     def get_guess(self):
 
         if self.get_current_player()=="Computer":
-            print("Computer is entering guess...")
+            print("Computer is guessing... \r")
             #ToDo
             # return guess
         else:
-            print(f"{self.get_current_player()} enter your guess:")
+            print(f"{self.get_current_player()} enter your guess: \r")
             return input()
-
 
     def game_loop(self):
 
-        print(f"{self.get_current_player()} starts...")
+        logger = Game.Logger(self)
         guess = self.get_guess()
+        match = self.compare_code(guess=guess)
+        logger.log_table(guess=guess, match=match)
 
-        while self.compare_code(guess=guess) < self._code_length:
+        while match < self._code_length:
 
             self.set_current_player()
             guess = self.get_guess()
-            self.compare_code(guess=guess)
-            self.
+            logger.log_table(guess=guess, match=match)
+            match = self.compare_code(guess=guess)
 
-    def verify_code(self, code:str):
+    def verify_code(self, code:str) -> None:
 
         verify = all(c in self._allowed_code for c in code)
 
         if not verify:
-            raise ValueError("Your code must have only contain integers")
-
-
-
-    class Logger:
-
-        def __init__(self, game):
-            self.game = game
-
-
-        def log_table(self, guess: str, match: int):
-
-            print(f"{guess}     {self.game.get_current_player()}     {match}")
-
-def main():
-
-    print("*****************************")
-    print("* WELCOME TO CRACK THE CODE *")
-    print("*****************************")
-
-    game = Game()
-    game.select_players()
-
-    print(f" It's {game.get_current_player()}'s turn. ")
-
-
+            raise ValueError("Your code must contain only integers.")
 
 if __name__=="__main__":
-    main()
+    crackthecode = Game()
+    crackthecode.game_loop()
