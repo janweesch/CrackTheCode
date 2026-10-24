@@ -11,12 +11,11 @@ class BruteForce(Algorithm):
 
     def __init__(self, code_length: int):
 
-        self.code_length = code_length
+        self._code_length = code_length
 
-    @abstractmethod
     def next_guess(self) -> str:
         code = ""
-        for i in range(self.code_length):
+        for i in range(self._code_length):
             code += str(random.randrange(0, 10, 1))
         return code
 

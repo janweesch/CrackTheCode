@@ -1,6 +1,8 @@
 import math
 import random
 from computer.brain import generate_code
+from computer.brain import ComputerPlayer
+from computer.algorithms import BruteForce
 
 
 class Game:
@@ -41,6 +43,11 @@ class Game:
             print("Enter your code: ")
             code = input()
             self._players = ((name, code), ("computer", generate_code(code_length=self._code_length)))
+            print("Select the algorithms: BruteForce[b]")
+            algo = input()
+            match algo:
+                case 'b':
+                    computer = ComputerPlayer(BruteForce(code_length= self._code_length))
 
         else:
             print("Enter name of Player 1: ")
