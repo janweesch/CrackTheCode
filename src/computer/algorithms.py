@@ -4,7 +4,7 @@ import random
 class Algorithm(ABC):
 
     @abstractmethod
-    def next_guess(self) -> int:
+    def next_guess(self) -> str:
         pass
 
 class BruteForce(Algorithm):

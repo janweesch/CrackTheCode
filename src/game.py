@@ -1,10 +1,10 @@
-import math
 import random
-from computer.brain import generate_code
-from computer.brain import ComputerPlayer
+from computer.computer import generate_code
+from computer.computer import ComputerPlayer
 from computer.algorithms import BruteForce
-
-
+from player.player import HumanPlayer
+from player.player import Player
+from src.utils.utils import get_code, get_mode
 class Game:
 
     class Logger:
@@ -16,7 +16,8 @@ class Game:
 
         def log_table(self, guess: str, match: int):
 
-            print(f"{self.game.get_current_player():{Game.Logger.OUTPUT_SPACE}s} {guess: {Game.Logger.OUTPUT_SPACE}s} {match}")
+            print(end="\r")
+            print(f"{self.game.get_current_player().who_am_i():{Game.Logger.OUTPUT_SPACE}s}"f"{guess:{Game.Logger.OUTPUT_SPACE}s}"f"{match}")
 
         def log_victory(self):
             print("*" * Game.Logger.WIDTH)
@@ -26,93 +27,65 @@ class Game:
     def __init__(self, code_length: int=4):
 
         self._players = ()
-        self._current_player = random.randint(1, int(math.inf)) % 2
+        self._current_player = random.randint(1, 1000000) % 2
         self._code_length = code_length
-        self._allowed_code = set("0123456789")
         self.game_mode = None
 
-    def select_players(self) -> None:
+    def select_game_mode(self) -> None:
 
-        print( "Playing against computer[c] or player[p]?" )
-        print( "Enter: ")
-        self.game_mode = input()
+        self.game_mode = get_mode(prompt="Playing against Computer[c] or another Player[p]", selection=['c', 'p'])
+        self.game_mode = 'c'
 
-        if self.game_mode == 'c':
-            print("Enter your Name: ")
-            name = input()
-            print("Enter your code: ")
-            code = input()
-            self._players = ((name, code), ("computer", generate_code(code_length=self._code_length)))
-            print("Select the algorithms: BruteForce[b]")
-            algo = input()
-            match algo:
-                case 'b':
-                    computer = ComputerPlayer(BruteForce(code_length= self._code_length))
+    @staticmethod
+    def create_player() -> HumanPlayer:
 
-        else:
-            print("Enter name of Player 1: ")
-            name_1 = input()
-            print(f"Enter your code {name_1}:")
-            code_1 = input()
+        print("Enter your name:", end =" ")
+        name = input()
 
-            print("Enter name of Player 2: ")
-            name_2 = input()
-            print(f"Enter your code {name_2}:")
-            code_2 = input()
+        code = get_code(code_length=4, secret=True)
+        return HumanPlayer(name=name, code=code)
 
-            self._players = ((name_1, code_1), (name_2, code_2))
+    def create_computer_player(self) -> ComputerPlayer:
+
+        algo = get_mode(prompt="Select the algorithm: \n BruteForce[b]", selection=['b'])
+
+        match algo:
+            case 'b':
+                return ComputerPlayer(BruteForce(code_length=self._code_length), code=generate_code(code_length=self._code_length))
 
     def set_current_player(self) -> None:
         self._current_player = 1 - self._current_player
 
-    def get_current_player(self) -> str:
-        return self._players[self._current_player][0]
+    def get_current_player(self) -> Player:
+        return self._players[self._current_player]
 
     def compare_code(self, guess: str) -> int:
 
-        if len(guess) > self._code_length:
-            raise ValueError(f"Your guess is longer than the expected code. Guess Length: {len(guess)} > Expected Code Length: {self._code_length}")
-
-        elif len(guess) < self._code_length:
-            raise ValueError(f"Your guess is longer than the expected code. Guess Length: {len(guess)} < Expected Code Length: {self._code_length}")
-
         match = 0
-        for i, j in zip(guess, self._players[self._current_player][1]):
+        for i, j in zip(guess, self._players[1-self._current_player].get_code()):
             if i==j:
                 match+=1
 
         return match
 
-    def get_guess(self):
-
-        if self.get_current_player()=="Computer":
-            print("Computer is guessing... \r")
-            #ToDo
-            # return guess
-        else:
-            print(f"{self.get_current_player()} enter your guess: \r")
-            return input()
-
     def game_loop(self):
 
+        self.select_game_mode()
+        self._players = (self.create_player(), self.create_computer_player()) if self.game_mode == "c" else (self.create_player(), self.create_player())
+
         logger = Game.Logger(self)
-        guess = self.get_guess()
+        guess = self.get_current_player().next_guess()
+
         match = self.compare_code(guess=guess)
         logger.log_table(guess=guess, match=match)
 
         while match < self._code_length:
 
             self.set_current_player()
-            guess = self.get_guess()
+            guess = self.get_current_player().next_guess()
+
             logger.log_table(guess=guess, match=match)
             match = self.compare_code(guess=guess)
-
-    def verify_code(self, code:str) -> None:
-
-        verify = all(c in self._allowed_code for c in code)
-
-        if not verify:
-            raise ValueError("Your code must contain only integers.")
 
 if __name__=="__main__":
     crackthecode = Game()
