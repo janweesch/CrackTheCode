@@ -4,6 +4,7 @@ from computer.computer import ComputerPlayer
 from computer.algorithms import BruteForce
 from player.player import HumanPlayer
 from player.player import Player
+from src.computer.algorithms import AlternatingDigits, SameDigit
 from src.utils.utils import get_code, get_mode
 class Game:
 
@@ -20,9 +21,12 @@ class Game:
             print(f"{self.game.get_current_player().who_am_i():{Game.Logger.OUTPUT_SPACE}s}"f"{guess:{Game.Logger.OUTPUT_SPACE}s}"f"{match}")
 
         def log_victory(self):
-            print("*" * Game.Logger.WIDTH)
-            print(f"* {'CONGRATULATIONS: ' + self.game.get_current_player():^{Game.Logger.WIDTH - 4}} *")
-            print("*" * Game.Logger.WIDTH)
+            width = Game.Logger.WIDTH
+            player = self.game.get_current_player().who_am_i()
+
+            print("*" * width)
+            print(f"*{'CONGRATULATIONS: ' + player:^{width - 2}}*")
+            print("*" * width)
 
     def __init__(self, code_length: int=4):
 
@@ -47,11 +51,15 @@ class Game:
 
     def create_computer_player(self) -> ComputerPlayer:
 
-        algo = get_mode(prompt="Select the algorithm: \n BruteForce[b]", selection=['b'])
+        algo = get_mode(prompt="Select the algorithm: \n BruteForce[b]", selection=['b', 'a', 's'])
 
         match algo:
             case 'b':
                 return ComputerPlayer(BruteForce(code_length=self._code_length), code=generate_code(code_length=self._code_length))
+            case 'a':
+                return ComputerPlayer(AlternatingDigits(code_length=self._code_length), code=generate_code(code_length=self._code_length))
+            case 's':
+                return ComputerPlayer(SameDigit(code_length=self._code_length),code=generate_code(code_length=self._code_length))
 
     def set_current_player(self) -> None:
         self._current_player = 1 - self._current_player
@@ -84,8 +92,10 @@ class Game:
             self.set_current_player()
             guess = self.get_current_player().next_guess()
 
-            logger.log_table(guess=guess, match=match)
             match = self.compare_code(guess=guess)
+            logger.log_table(guess=guess, match=match)
+
+        logger.log_victory()
 
 if __name__=="__main__":
     crackthecode = Game()
