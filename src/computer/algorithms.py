@@ -1,70 +1,97 @@
-from abc import ABC, abstractmethod
+from itertools import product
 import random
+from src.player.player import Player
 
-class Algorithm(ABC):
+class Algorithm(Player):
 
-    @abstractmethod
+    def __init__(self, code: str):
+
+        self._guesses = None # set of guesses
+        self._guess_counter = 0
+        self._code = code
+        self._remaining_codes = product([str(i) for i in range(len(self._code))], repeat=len(self._code))
+
     def next_guess(self) -> str:
         pass
 
-class BruteForce(Algorithm):
+    def get_guess_counter(self) -> int:
+        return self._guess_counter
 
-    def __init__(self, code_length: int):
+    def get_code(self) -> str:
+        return self._code
 
-        self._code_length = code_length
+    def who_am_i(self) -> str:
+        return "Computer"
+
+class RandomCode(Algorithm):
+
+    def __init__(self, code: str):
+
+        super().__init__(code=code)
 
     def next_guess(self) -> str:
+
         code = ""
-        for i in range(self._code_length):
+        for i in range(len(code)):
             code += str(random.randrange(0, 10, 1))
+
+        self._guess_counter += 1
+
+        return code
+
+class BruteForce(Algorithm):
+
+    def __init__(self, code: str):
+
+        super().__init__(code=code)
+
+    def next_guess(self) -> str:
+
+        guess = self._remaining_codes.__next__()
+        code = ''.join(guess)
+
         return code
 
 class SameDigit(Algorithm):
 
-    def __init__(self, code_length: int):
+    def __init__(self, code: str):
 
-        self._code_length = code_length
-        self._guesses = 0
+        super().__init__(code=code)
 
     def next_guess(self) -> str:
 
         code = "0000"
-        if self._guesses < 10:
-            code = self._code_length*str(self._guesses)
-        self._guesses += 1
+        if self._guess_counter < 10:
+            code = len(code)*str(self._guess_counter)
+
+        self._guess_counter += 1
 
         return code
 
 class AlternatingDigits(Algorithm):
 
-    def __init__(self, code_length: int):
+    def __init__(self, code: str):
 
-        self._code_length = code_length
-        self._guesses = 0
+        super().__init__(code=code)
 
     def next_guess(self) -> str:
 
         code = "0000"
-        if self._guesses < 10:
-            code = ''.join(f"{(i+self._guesses) % 10}" for i in range(self._code_length))
-        self._guesses += 1
+        if self._guess_counter < 10:
+            code = ''.join(f"{(i+self._guess_counter) % 10}" for i in range(len(self._code)))
+
+        self._guess_counter += 1
 
         return code
 
+
+
 class Backtracking(Algorithm):
 
-    def next_guess(self):
-        pass
+    def __init__(self, code: str):
+
+        super().__init__(code=code)
 
 
-class MiniMax(Algorithm):
     def next_guess(self) -> str:
         pass
-
-
-    def max(self):
-        pass
-
-    def min(self):
-        pass
-

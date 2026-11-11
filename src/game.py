@@ -1,6 +1,5 @@
 import random
-from computer.computer import generate_code
-from computer.computer import ComputerPlayer
+from src.utils.utils import generate_code
 from computer.algorithms import BruteForce
 from player.player import HumanPlayer
 from player.player import Player
@@ -23,9 +22,11 @@ class Game:
         def log_victory(self):
             width = Game.Logger.WIDTH
             player = self.game.get_current_player().who_am_i()
+            guesses = self.game.get_current_player().get_guess_counter()
 
             print("*" * width)
-            print(f"*{'CONGRATULATIONS: ' + player:^{width - 2}}*")
+            print(f"*{'CONGRATULATIONS!':^{width - 2}}*")
+            print(f"*{f'{player} has won after {guesses} guess(es)':^{width - 2}}*")
             print("*" * width)
 
     def __init__(self, code_length: int=4):
@@ -38,7 +39,6 @@ class Game:
     def select_game_mode(self) -> None:
 
         self.game_mode = get_mode(prompt="Playing against Computer[c] or another Player[p]", selection=['c', 'p'])
-        self.game_mode = 'c'
 
     @staticmethod
     def create_player() -> HumanPlayer:
@@ -46,20 +46,20 @@ class Game:
         print("Enter your name:", end =" ")
         name = input()
 
-        code = get_code(code_length=4, secret=True)
+        code = get_code(code_length=4, secret=True, name=name)
         return HumanPlayer(name=name, code=code)
 
-    def create_computer_player(self) -> ComputerPlayer:
+    def create_computer_player(self) -> Player:
 
         algo = get_mode(prompt="Select the algorithm: \n BruteForce[b]", selection=['b', 'a', 's'])
 
         match algo:
             case 'b':
-                return ComputerPlayer(BruteForce(code_length=self._code_length), code=generate_code(code_length=self._code_length))
+                return BruteForce(code=generate_code(code_length=self._code_length))
             case 'a':
-                return ComputerPlayer(AlternatingDigits(code_length=self._code_length), code=generate_code(code_length=self._code_length))
+                return AlternatingDigits(code=generate_code(code_length=self._code_length))
             case 's':
-                return ComputerPlayer(SameDigit(code_length=self._code_length),code=generate_code(code_length=self._code_length))
+                return SameDigit(code=generate_code(code_length=self._code_length))
 
     def set_current_player(self) -> None:
         self._current_player = 1 - self._current_player

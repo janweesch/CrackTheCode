@@ -1,9 +1,20 @@
 import sys
 from typing import List
+import random
 
-def get_code(code_length: int, prompt: str = "Enter your Code:", secret: bool = False) -> str:
+
+def generate_code(code_length: int) -> str:
+    """Generates a random code once at the beginning of the game..."""
+    code = ""
+    for i in range(code_length):
+        code += str(random.randrange(0, 10, 1))
+    return code
+
+
+def get_code(code_length: int, name:str, prompt: str = "Enter your Code", secret: bool = False) -> str:
     code = ""
 
+    prompt = f"{prompt} {name}:"
     print(prompt, end=" ", flush=True)
 
 
