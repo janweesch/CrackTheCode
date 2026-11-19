@@ -1,10 +1,10 @@
 import random
 from src.utils.utils import generate_code
-from computer.algorithms import BruteForce
+from computer.algorithms import BruteForce, Backtracking, BinaryBacktracking
 from player.player import HumanPlayer
 from player.player import Player
-from src.computer.algorithms import AlternatingDigits, SameDigit
 from src.utils.utils import get_code, get_mode
+
 class Game:
 
     class Logger:
@@ -51,15 +51,18 @@ class Game:
 
     def create_computer_player(self) -> Player:
 
-        algo = get_mode(prompt="Select the algorithm: \n BruteForce[b]", selection=['b', 'a', 's'])
+        algo = get_mode(prompt="Select the algorithm: \n BruteForce[b]", selection=['B', 'b', 'a', 's'])
 
         match algo:
             case 'b':
                 return BruteForce(code=generate_code(code_length=self._code_length))
-            case 'a':
-                return AlternatingDigits(code=generate_code(code_length=self._code_length))
-            case 's':
-                return SameDigit(code=generate_code(code_length=self._code_length))
+            # case 'a':
+            #     return AlternatingDigits(code=generate_code(code_length=self._code_length))
+            # case 's':
+            #     return SameDigit(code=generate_code(code_length=self._code_length))
+            case 'B':
+                return BinaryBacktracking(code=generate_code(code_length=self._code_length), game=self)
+
 
     def set_current_player(self) -> None:
         self._current_player = 1 - self._current_player
