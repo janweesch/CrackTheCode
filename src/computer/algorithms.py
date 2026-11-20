@@ -182,7 +182,6 @@ class BinaryBacktracking(Backtracking):
 
         return guess
 
-
     def _binary_search(self, guess: str, current_domain: List[str]) -> Generator[str]:
 
         def generate_prefix_list(guess: str, counting_val: str) -> List[int]:
@@ -192,38 +191,75 @@ class BinaryBacktracking(Backtracking):
 
         def split_prefix_list(prefix_list: List[int], middle_pointer: int, right_pointer: int) -> Tuple[int, int]:
 
-            return prefix_list[middle_pointer], prefix_list[right_pointer-1] - prefix_list[middle_pointer]
+            return prefix_list[middle_pointer-1], prefix_list[right_pointer-1] - prefix_list[middle_pointer-1]
 
         place_holder = guess[0]
         _prefix_list = generate_prefix_list(guess=guess, counting_val=place_holder)
         place_holder_count = _prefix_list[-1]
+
         current_match = 0
+        match = 0
+
         left_pointer = 0
         right_pointer = len(guess)
         middle_pointer = len(guess) // 2
 
-        for c in current_domain:
+        for c in current_domain[:-2]:
             ground_truth_guess = guess
-            while place_holder_count > 2:
+            right_side = False
+            found = False
 
-                guess_list = list(guess)
-                for pos in range(left_pointer, middle_pointer):
-                    guess_list[pos] = c if guess_list[pos] == place_holder else guess_list[pos]
+            while not found:
 
-                guess = ''.join(guess_list)
-                yield guess
+                if place_holder_count <= 2 and right_side:
+                    index_1 = guess[left_pointer:right_pointer].index(place_holder)
+                    index_2 = (len(guess) - 1 - guess[right_pointer::-1].index(place_holder))
 
-                _prefix_list = generate_prefix_list(guess=guess, counting_val=place_holder)
+                    guess = self.two_numbers_guess(current_guess=guess, number_1=c, index_1=index_1, number_2=place_holder, index_2=index_2)
 
-                match = self.game.compare_code(guess=guess)
+                    yield guess
 
-                if match > current_match:
+                    current_match = self.game.compare_code(guess=guess)
+
+                    if current_match == match:
+                        guess = self.two_numbers_guess(current_guess=guess, number_1=c, index_1=index_2, number_2=place_holder, index_2=index_1)
+
+                    match = current_match
+
+                    left_pointer = guess.index(place_holder)
+                    right_pointer = len(guess) - guess[::-1].index(place_holder)
+                    middle_pointer = (left_pointer + right_pointer) // 2
+                    _prefix_list = generate_prefix_list(guess=guess, counting_val=place_holder)
+                    place_holder_count = _prefix_list[right_pointer - 1]
+                    ground_truth_guess = guess
+
+                    found = True
+
+                else:
+                    guess_list = list(guess)
+
+                    nl_place_holder, rl_place_holder = split_prefix_list(prefix_list=_prefix_list, middle_pointer=middle_pointer,
+                                                              right_pointer=right_pointer)
+
+                    for pos in range(left_pointer, middle_pointer):
+                        guess_list[pos] = c if guess_list[pos] == place_holder else guess_list[pos]
+
+                    guess = ''.join(guess_list)
+                    yield guess
+
+                    _prefix_list = generate_prefix_list(guess=guess, counting_val=place_holder)
+
+                    current_match = self.game.compare_code(guess=guess)
+
+                # search right
+                if current_match == match:
                     left_pointer = middle_pointer
                     middle_pointer = (left_pointer + right_pointer) // 2
                     _, place_holder_count = split_prefix_list(prefix_list=_prefix_list, middle_pointer=middle_pointer,
                                                               right_pointer=right_pointer)
+                # search left
+                elif current_match > match:
 
-                elif match == current_match:
                     right_pointer = middle_pointer
                     middle_pointer = (left_pointer + right_pointer) // 2
                     place_holder_count, _ = split_prefix_list(prefix_list=_prefix_list, middle_pointer=middle_pointer,
@@ -231,25 +267,17 @@ class BinaryBacktracking(Backtracking):
 
                 guess = ground_truth_guess
 
-            index_1 = guess[left_pointer:right_pointer].index(place_holder)
-            index_2 = (len(guess) - 1 - guess[right_pointer::-1].index(place_holder))
+        index_1 = guess[left_pointer:right_pointer].index(place_holder)
+        index_2 = (len(guess) - 1 - guess[::-1].index(place_holder))
 
-            guess = self.two_numbers_guess(current_guess=guess, number_1=c, index_1=index_1, number_2=place_holder, index_2=index_2)
+        guess = self.two_numbers_guess(current_guess=guess, number_1=current_domain[-1], index_1=index_1, number_2=current_domain[-2], index_2=index_2)
 
+        yield guess
+
+        current_match = self.game.compare_code(guess=guess)
+
+        if current_match == match:
+            guess = self.two_numbers_guess(current_guess=guess, number_1=current_domain[-1], index_1=index_2, number_2=current_domain[-2], index_2=index_1)
             yield guess
 
-            match = self.game.compare_code(guess=guess)
-
-            if current_match == match:
-                guess = self.two_numbers_guess(current_guess=guess, number_1=c, index_1=index_2, number_2=place_holder, index_2=index_1)
-
-                if len(current_domain)==2:
-                    yield guess
-
-            current_match = match
-
-            left_pointer = guess.index(place_holder)
-            right_pointer = len(guess) - guess[::-1].index(place_holder)
-            middle_pointer = (left_pointer+right_pointer) // 2
-            _prefix_list = generate_prefix_list(guess=guess, counting_val=place_holder)
-            place_holder_count = _prefix_list[right_pointer-1]
+            return
