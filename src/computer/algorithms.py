@@ -173,7 +173,7 @@ class BinaryBacktracking(Backtracking):
             guess = self.pre_algo.next_guess()
             if self.backtracking is None and len(Algorithm._code_domain) == len(self._code):
                 starting_guess = len(self._code) * random.choice(Algorithm._place_holder_domain)
-                self.backtracking = self._binary_search(guess=starting_guess, current_domain=Algorithm._code_domain.copy())
+                self.backtracking = self._binary_search(guess=starting_guess, search_domain=Algorithm._code_domain.copy())
 
         elif self.backtracking is not None:
             guess = next(self.backtracking)
@@ -182,102 +182,73 @@ class BinaryBacktracking(Backtracking):
 
         return guess
 
-    def _binary_search(self, guess: str, current_domain: List[str]) -> Generator[str]:
+    def _binary_search(self, guess: str, search_domain: List[str]):
 
-        def generate_prefix_list(guess: str, counting_val: str) -> List[int]:
+        p_h_index_list = [index for index in range(len(guess))] # indexes of place holders (p_h)
 
-            guess = list(guess)
-            return list(accumulate([1 if elem == counting_val else 0 for elem in guess]))
+        # pointers
+        l_p = 0
+        r_p = len(guess) # always showing to last element in searching area
+        m_p = r_p // 2  # up rounded middle element
 
-        def split_prefix_list(prefix_list: List[int], middle_pointer: int, right_pointer: int) -> Tuple[int, int]:
+        guess_list = list(guess) # guess list
 
-            return prefix_list[middle_pointer-1], prefix_list[right_pointer-1] - prefix_list[middle_pointer-1]
+        match = 0 # number of correct positions
 
-        place_holder = guess[0]
-        _prefix_list = generate_prefix_list(guess=guess, counting_val=place_holder)
-        place_holder_count = _prefix_list[-1]
+        for number in search_domain[:-2]:
 
-        current_match = 0
-        match = 0
-
-        left_pointer = 0
-        right_pointer = len(guess)
-        middle_pointer = len(guess) // 2
-
-        for c in current_domain[:-2]:
-            ground_truth_guess = guess
-            right_side = False
-            found = False
+            found = False  # found the correct position
 
             while not found:
 
-                if place_holder_count <= 2 and right_side:
-                    index_1 = guess[left_pointer:right_pointer].index(place_holder)
-                    index_2 = (len(guess) - 1 - guess[right_pointer::-1].index(place_holder))
+                current_guess_list = guess_list.copy()
 
-                    guess = self.two_numbers_guess(current_guess=guess, number_1=c, index_1=index_1, number_2=place_holder, index_2=index_2)
+                for index in p_h_index_list[l_p:m_p]:
+                    current_guess_list[index] = number
 
-                    yield guess
+                current_guess = ''.join(current_guess_list)
 
-                    current_match = self.game.compare_code(guess=guess)
+                yield current_guess
 
-                    if current_match == match:
-                        guess = self.two_numbers_guess(current_guess=guess, number_1=c, index_1=index_2, number_2=place_holder, index_2=index_1)
-
-                    match = current_match
-
-                    left_pointer = guess.index(place_holder)
-                    right_pointer = len(guess) - guess[::-1].index(place_holder)
-                    middle_pointer = (left_pointer + right_pointer) // 2
-                    _prefix_list = generate_prefix_list(guess=guess, counting_val=place_holder)
-                    place_holder_count = _prefix_list[right_pointer - 1]
-                    ground_truth_guess = guess
-
-                    found = True
-
-                else:
-                    guess_list = list(guess)
-
-                    nl_place_holder, rl_place_holder = split_prefix_list(prefix_list=_prefix_list, middle_pointer=middle_pointer,
-                                                              right_pointer=right_pointer)
-
-                    for pos in range(left_pointer, middle_pointer):
-                        guess_list[pos] = c if guess_list[pos] == place_holder else guess_list[pos]
-
-                    guess = ''.join(guess_list)
-                    yield guess
-
-                    _prefix_list = generate_prefix_list(guess=guess, counting_val=place_holder)
-
-                    current_match = self.game.compare_code(guess=guess)
+                current_match = self.game.compare_code(guess=current_guess)
 
                 # search right
                 if current_match == match:
-                    left_pointer = middle_pointer
-                    middle_pointer = (left_pointer + right_pointer) // 2
-                    _, place_holder_count = split_prefix_list(prefix_list=_prefix_list, middle_pointer=middle_pointer,
-                                                              right_pointer=right_pointer)
+                    l_p = m_p
+                    m_p = (l_p + r_p) // 2
+
                 # search left
                 elif current_match > match:
+                    r_p = m_p
+                    m_p = (l_p + r_p) // 2
 
-                    right_pointer = middle_pointer
-                    middle_pointer = (left_pointer + right_pointer) // 2
-                    place_holder_count, _ = split_prefix_list(prefix_list=_prefix_list, middle_pointer=middle_pointer,
-                                                              right_pointer=right_pointer)
+                if l_p == r_p-1:
+                    found = True
+                    match += 1
 
-                guess = ground_truth_guess
+            # update guess
+            guess_list[p_h_index_list[l_p]] = number
 
-        index_1 = guess[left_pointer:right_pointer].index(place_holder)
-        index_2 = (len(guess) - 1 - guess[::-1].index(place_holder))
+            # update p_h_list
+            p_h_index_list.pop(l_p)
 
-        guess = self.two_numbers_guess(current_guess=guess, number_1=current_domain[-1], index_1=index_1, number_2=current_domain[-2], index_2=index_2)
+            # update pointer
+            l_p = 0
+            r_p = len(p_h_index_list)
+            m_p = r_p // 2
 
-        yield guess
+        current_guess = ''.join(guess_list)
 
-        current_match = self.game.compare_code(guess=guess)
+        # Last possible choices
+        current_guess = self.two_numbers_guess(current_guess=current_guess, number_1=search_domain[-2], index_1=p_h_index_list[0], number_2=search_domain[-1], index_2=p_h_index_list[1])
+
+        yield current_guess
+
+        current_match = self.game.compare_code(guess=current_guess)
 
         if current_match == match:
-            guess = self.two_numbers_guess(current_guess=guess, number_1=current_domain[-1], index_1=index_2, number_2=current_domain[-2], index_2=index_1)
-            yield guess
+            current_guess = self.two_numbers_guess(current_guess=current_guess, number_1=search_domain[-2], index_1=p_h_index_list[1], number_2=search_domain[-1], index_2=p_h_index_list[0])
+
+            yield current_guess
 
             return
