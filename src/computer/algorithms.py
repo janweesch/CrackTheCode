@@ -1,7 +1,7 @@
 from __future__ import annotations
 from itertools import product, accumulate
 import random
-from typing import TYPE_CHECKING, Generator, List, Tuple
+from typing import TYPE_CHECKING, Generator, List, Tuple, Dict
 
 if TYPE_CHECKING:
     from src.game import Game
@@ -48,12 +48,18 @@ class Algorithm(Player):
     def who_am_i(self) -> str:
         return "Computer"
 
-    def two_numbers_guess(self, current_guess: str, number_1: str, index_1: int, number_2: str, index_2: int) -> str:
+    def two_numbers_guess(self, current_guess_list: List[str], number_1: str, index_1: int, number_2: str, index_2: int) -> str:
 
-            current_guess_list = list(current_guess)
-            current_guess_list[index_1] = number_1
-            current_guess_list[index_2] = number_2
-            return ''.join(current_guess_list)
+        current_guess_list[index_1] = number_1
+        current_guess_list[index_2] = number_2
+        return ''.join(current_guess_list)
+
+    def fill_missing_number(self, current_guess_list: List[str], number: str, place_holder_list: List[int]) -> str:
+
+        for index in place_holder_list:
+            current_guess_list[index] = number
+
+        return ''.join(current_guess_list)
 
 class RandomCode(Algorithm):
 
@@ -184,6 +190,10 @@ class BinaryBacktracking(Backtracking):
 
     def _binary_search(self, guess: str, search_domain: List[str]):
 
+        search_domain_map = {code_number: search_domain.count(code_number) for code_number in search_domain}
+        search_domain.sort()
+        remaining_numbers = search_domain.copy()
+
         p_h_index_list = [index for index in range(len(guess))] # indexes of place holders (p_h)
 
         # pointers
@@ -195,60 +205,78 @@ class BinaryBacktracking(Backtracking):
 
         match = 0 # number of correct positions
 
-        for number in search_domain[:-2]:
+        for number in search_domain:
 
-            found = False  # found the correct position
+            if  len(set(remaining_numbers)) == 1:
+                current_guess = self.fill_missing_number(current_guess_list=guess_list, number=search_domain[0], place_holder_list=p_h_index_list)
 
-            while not found:
+                yield current_guess
 
-                current_guess_list = guess_list.copy()
+                return
 
-                for index in p_h_index_list[l_p:m_p]:
-                    current_guess_list[index] = number
+            elif len(p_h_index_list) == 2:
 
-                current_guess = ''.join(current_guess_list)
+                # Last possible choices
+                current_guess = self.two_numbers_guess(current_guess_list=guess_list, number_1=search_domain[-2],
+                                                       index_1=p_h_index_list[0], number_2=search_domain[-1],
+                                                       index_2=p_h_index_list[1])
 
                 yield current_guess
 
                 current_match = self.game.compare_code(guess=current_guess)
 
-                # search right
                 if current_match == match:
-                    l_p = m_p
-                    m_p = (l_p + r_p) // 2
+                    current_guess = self.two_numbers_guess(current_guess_list=guess_list, number_1=search_domain[-2],
+                                                           index_1=p_h_index_list[1], number_2=search_domain[-1],
+                                                           index_2=p_h_index_list[0])
 
-                # search left
-                elif current_match > match:
-                    r_p = m_p
-                    m_p = (l_p + r_p) // 2
+                    yield current_guess
 
-                if l_p == r_p-1:
-                    found = True
-                    match += 1
+                    return
 
-            # update guess
-            guess_list[p_h_index_list[l_p]] = number
+            else:
+                while True:
 
-            # update p_h_list
-            p_h_index_list.pop(l_p)
+                    current_guess_list = guess_list.copy()
 
-            # update pointer
-            l_p = 0
-            r_p = len(p_h_index_list)
-            m_p = r_p // 2
+                    for index in p_h_index_list[l_p:m_p]:
+                        current_guess_list[index] = number
 
-        current_guess = ''.join(guess_list)
+                    current_guess = ''.join(current_guess_list)
 
-        # Last possible choices
-        current_guess = self.two_numbers_guess(current_guess=current_guess, number_1=search_domain[-2], index_1=p_h_index_list[0], number_2=search_domain[-1], index_2=p_h_index_list[1])
+                    yield current_guess
 
-        yield current_guess
+                    current_match = self.game.compare_code(guess=current_guess)
 
-        current_match = self.game.compare_code(guess=current_guess)
+                    if current_match == match + m_p - l_p:
+                        match += m_p - l_p
+                        break
 
-        if current_match == match:
-            current_guess = self.two_numbers_guess(current_guess=current_guess, number_1=search_domain[-2], index_1=p_h_index_list[1], number_2=search_domain[-1], index_2=p_h_index_list[0])
+                    # search right
+                    elif current_match == match:
+                        l_p = m_p
+                        m_p = (l_p + r_p) // 2
 
-            yield current_guess
+                    # search left
+                    elif current_match > match:
+                        r_p = m_p
+                        m_p = (l_p + r_p) // 2
 
-            return
+                    if l_p == r_p-1:
+                        match += r_p - l_p
+                        break
+
+                # update guess
+                for index in p_h_index_list[l_p:m_p]:
+                    guess_list[index] = number
+
+                # update p_h_list
+                del p_h_index_list[l_p:m_p]
+
+                # update remaining_numbers
+                remaining_numbers.pop(0)
+
+                # update pointer
+                l_p = 0
+                r_p = len(p_h_index_list)
+                m_p = r_p // 2
